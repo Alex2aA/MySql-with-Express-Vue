@@ -28,8 +28,8 @@ class UserController {
         const {username, password} = req.body
         const hashPassword = bcrypt.hashSync(password, 7)
 
-        const sql = "INSERT INTO users (username, password) VALUES('"+ username +"','" + hashPassword + "')"
-        db.query(sql, (error, result) => {
+        const sql = "INSERT INTO users (username, password) VALUES(?,?)"
+        db.query(sql, [username,hashPassword],(error, result) => {
             if(error) {
                 console.log(`Something went wrong ${error}`)
                 res.status(400).json({message: `Something went wrong ${error}`})
@@ -43,22 +43,44 @@ class UserController {
 
     async login(req, res) {
         const {username, password} = req.body
+        console.log(req.body)
+        console.log(username, password)
 
-        db.query("SELECT id, username, password FROM users WHERE username = '"+ username +"'", (error, rows) => {
-            if (error) {
+        if(username && password) {
+            db.query("SELECT id, username, password FROM users WHERE username = ?",[username], (error, rows) => {
+                if (error) {
+                    console.log(`Something went wrong ${error}`)
+                    res.status(400).json({message: `Something went wrong ${error}`})
+                } else {
+                    var comparePassword, id
+                    rows.forEach(el => {
+                        comparePassword = el.password
+                        id = el.id
+                    })
+                    if (bcrypt.compareSync(password, comparePassword)) {
+                        const token = generateAccessToken(id, username)
+                        console.log(`you are logged how ${username}`)
+                        res.json({message: "You are looged in", token})
+                    } else {
+                        res.status(403).json({message: "Incorrectly entered data"})
+                    }
+                }
+            })
+        } else {
+            res.status(400).json({message: "username or password must be not null"})
+        }
+        
+    }
+
+    async getUserInfo(req,res) {
+        const myId = req.user.id
+
+        db.query("SELECT path FROM user_avatars WHERE path IS NOT NULL AND id = ?",[myId],(error, rows) => {
+            if(error) {
                 console.log(`Something went wrong ${error}`)
                 res.status(400).json({message: `Something went wrong ${error}`})
             } else {
-                var comparePassword, id
-                rows.forEach(el => {
-                    comparePassword = el.password
-                    id = el.id
-                })
-                if (bcrypt.compareSync(password, comparePassword)) {
-                    const token = generateAccessToken(id, username)
-                    console.log(`you are logged how ${username}`)
-                    res.json({message: "You are looged in", token})
-                }
+                res.json({rows})
             }
         })
     }

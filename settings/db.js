@@ -6,12 +6,11 @@ const connection = mySql.createConnection({
     password: "admin",
     database: "myappdb"
 })
-
-connection.connect( (e) => {
+/*connection.connect( (e) => {
     if(e) {
         return console.error("Get error: " + e.stack)
     }
     console.log("Succsesful connect to db")
-})
+})*/
 
 module.exports = connection
